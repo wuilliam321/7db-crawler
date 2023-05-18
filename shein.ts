@@ -1,19 +1,18 @@
-export class Forever21 implements Crawler {
+export class Shein implements Crawler {
     private url: string;
     private index = 0;
     private size = 1;
 
     constructor(private orderId: string, private selector: Selector) {
-        this.url = `https://www.forever21.com/on/demandware.store/Sites-forever21-Site/`
-            + `en_US/Order-Details?orderID=${this.orderId}&orderFilter=`;
+        this.url = `https://us.shein.com/user/orders/detail/` + this.orderId;
     }
     updateSize() {
         this.index = 0;
-        const count = this.selector.GetImages(".product-line-item__image").length;
+        const count = this.selector.GetImages(".img-box img").length;
         this.size = count;
     }
     ImageURL(): string {
-        const items = this.selector.GetImages(".product-line-item__image");
+        const items = this.selector.GetImages(".img-box img");
         let item = items[this.index];
         if (!item) {
             item = "";
@@ -24,50 +23,50 @@ export class Forever21 implements Crawler {
         return "";
     }
     Description(): string {
-        const items = this.selector.GetText(".product-line-item__name.link");
+        const items = this.selector.GetText(".goods-info a");
         let item = items[this.index];
         if (!item) {
             item = "";
         }
-        return item.trim();
+        return item.replace("SHEIN", "").trim();
     }
     Brand(): string {
-        return "Forever21";
+        return "Shein";
     }
     Size(): string {
-        const items = this.selector.GetText("[data-line-item-component='size']");
+        const items = this.selector.GetText(".size-info");
         let item = items[this.index];
         if (!item) {
-            item = "";
+            return "";
         }
-        return item.replace(/\n|\r|\t|\'/g, "").replace("Size:", "");
+        let parts = item.split("/");
+        if (parts.length == 1) {
+            return "";
+        }
+        if (parts.length > 2) {
+            return parts[1] + "/" + parts[2];
+        }
+        return parts[1];
     }
     Color(): string {
-        const items = this.selector.GetText("[data-line-item-component='color']");
+        const items = this.selector.GetText(".size-info");
         let item = items[this.index];
         if (!item) {
-            item = "";
+            return "";
         }
-        return item.replace(/\n|\r|\t|\'/g, "").replace("Color:", "");
+        let parts = item.split("/");
+        return parts[0];
     }
     Price(): string {
-        const items = this.selector.GetText("[data-line-item-component='price-total']");
+        const items = this.selector.GetText(".struct-gray-light");
         const item = items[this.index];
         if (!item) {
             return "";
         }
-        let cleanPrice = item.replace(/\n|\r|\t|\'/g, "").trim();
-        let priceParts = cleanPrice.split("$");
-        if (cleanPrice.length < 2) {
-            return items[this.index].replace("$", "");
-        }
-        if (priceParts.length === 3) {
-            return priceParts[2];
-        }
-        return priceParts[1];
+        return item.replace("$", "").trim();
     }
     Link(): string {
-        const texts = this.selector.GetLink(".product-line-item__name.link");
+        const texts = this.selector.GetLink(".goods-info a");
         let item = texts[this.index];
         if (!item) {
             item = "";
@@ -93,4 +92,5 @@ export class Forever21 implements Crawler {
     }
 }
 
-// const c = new Forever21("order-id", new HtmlSelector());
+// const c = new Shein("order-id", new HtmlSelector());
+
