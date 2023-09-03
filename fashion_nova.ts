@@ -1,73 +1,88 @@
-import { HtmlSelector } from "./html_selector";
+class HtmlSelector implements Selector {
+    GetLink(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLAnchorElement>(query)
+        return elem?.href!;
+    }
+    GetImages(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLImageElement>(query)
+        return elem?.src!;
+    }
+    GetText(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLParagraphElement>(query)
+        return elem?.textContent!;
+    }
+    Fetch(query: string): NodeListOf<Element> {
+        return document.querySelectorAll(query);
+    }
+}
 
 export class FashionNova implements Crawler {
     private url: string;
-    private index = 0;
-    private size = 1;
 
     constructor(private orderId: string, private selector: Selector) {
+        if (!selector) {
+            selector = new HtmlSelector();
+        }
         this.url = "https://www.fashionnova.com/account/orders/";
     }
-    updateSize() {
-        this.index = 0;
-        const count = this.selector.GetImages(".account-order__line-item-image").length;
-        this.size = count;
+    ImageURL(e: Element): string {
+        const item = this.selector.GetImages(e, ".account-order__line-item-image");
+        return `=IMAGE("${item}")`;
     }
-    ImageURL(): string {
-        const items = this.selector.GetImages(".account-order__line-item-image");
-        return `=IMAGE("${items[this.index]}")`;
-    }
-    Type(): string {
+    Type(_e: Element): string {
         return "";
     }
-    Description(): string {
-        const texts = this.selector.GetText(".account-order__line-item-title");
-        const s = texts[this.index].split(" - ");
+    Description(e: Element): string {
+        const text = this.selector.GetText(e, ".account-order__line-item-title");
+        const s = text.split(" - ");
         if (s.length < 2) {
             return "";
         }
         return s[0];
     }
-    Brand(): string {
+    Brand(_e: Element): string {
         return "FashionNova";
     }
-    Size(): string {
-        const items = this.selector.GetText(".account-order__line-item-option");
-        return items[this.index].replace("Size: ", "");
+    Size(e: Element): string {
+        const item = this.selector.GetText(e, ".account-order__line-item-option");
+        return item.replace("Size: ", "");
     }
-    Color(): string {
-        const texts = this.selector.GetText(".account-order__line-item-title");
-        const s = texts[this.index].split(" - ");
+    Color(e: Element): string {
+        const text = this.selector.GetText(e, ".account-order__line-item-title");
+        const s = text.split(" - ");
         if (s.length < 2) {
             return "";
         }
         return s[1];
     }
-    Price(): string {
-        const texts = this.selector.GetText(".account-order__line-item-price");
-        return texts[this.index].replace("$", "");
+    Price(e: Element): string {
+        const text = this.selector.GetText(e, ".account-order__line-item-price");
+        return text.replace("$", "");
     }
-    Link(): string {
-        const texts = this.selector.GetLink(".account-order__line-item-link");
-        return texts[this.index];
+    Link(e: Element): string {
+        const text = this.selector.GetLink(e, ".account-order__line-item-link");
+        let item = text;
+        if (!item) {
+            item = "";
+        }
+        return item;
     }
-    OrderLink(): string {
+    OrderLink(_e: Element): string {
         return this.url + this.orderId;
     }
     BuildRow(): string[] {
-        this.updateSize();
+        const elements = this.selector.Fetch(".account-order__line-item");
         const rows = [] as string[];
-        while (this.index < this.size) {
+        elements.forEach((e) => {
             rows.push(`\t`
-                + `${this.ImageURL()}\t${this.Type()}\t${this.Description()}\t`
-                + `${this.Brand()}\t${this.Size()}\t${this.Color()}\t`
-                + `${this.Price()}\t\t\t\t\t`
-                + `${this.OrderLink()}\t${this.Link()}\n`
+                + `${this.ImageURL(e)}\t${this.Type(e)}\t${this.Description(e)}\t`
+                + `${this.Brand(e)}\t${this.Size(e)}\t${this.Color(e)}\t`
+                + `${this.Price(e)}\t\t\t\t\t\t`
+                + `${this.OrderLink(e)}\t${this.Link(e)}\n`
             );
-            this.index++;
-        }
+        });
         return rows;
     }
 }
 
-const c = new FashionNova("order-id", new HtmlSelector());
+// const c = new FashionNova("order-id", new HtmlSelector());

@@ -1,20 +1,17 @@
 export class HtmlSelector implements Selector {
-    GetLink(query: string): string[] {
-        const links = [] as string[];
-        const elements = document.querySelectorAll<HTMLAnchorElement>(query)
-        elements.forEach(e => links.push(e.href))
-        return links;
+    GetLink(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLAnchorElement>(query)
+        return elem?.href!;
     }
-    GetImages(query: string): string[] {
-        const images = [] as string[];
-        const elements = document.querySelectorAll<HTMLImageElement>(query)
-        elements.forEach(e => images.push(e.src))
-        return images;
+    GetImages(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLImageElement>(query)
+        return elem?.src!;
     }
-    GetText(query: string): string[] {
-        const texts = [] as string[];
-        const elements = document.querySelectorAll<HTMLParagraphElement>(query)
-        elements.forEach(e => texts.push(e.textContent!))
-        return texts;
+    GetText(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLParagraphElement>(query)
+        return elem?.textContent!;
+    }
+    Fetch(query: string): NodeListOf<Element> {
+        return document.querySelectorAll(query);
     }
 }

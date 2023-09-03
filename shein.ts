@@ -1,41 +1,61 @@
+class HtmlSelector implements Selector {
+    GetLink(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLAnchorElement>(query)
+        return elem?.href!;
+    }
+    GetImages(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLImageElement>(query)
+        return elem?.src!;
+    }
+    GetText(parent: Element, query: string): string {
+        const elem = parent.querySelector<HTMLParagraphElement>(query)
+        return elem?.textContent!;
+    }
+    Fetch(query: string): NodeListOf<Element> {
+        return document.querySelectorAll(query);
+    }
+}
+
 export class Shein implements Crawler {
     private url: string;
-    private index = 0;
-    private size = 1;
+    // map from size to color
+    private sizes: { [key: string]: string } = {
+        "2": "XS",
+        "4": "S",
+        "6": "M",
+        "8/10": "L",
+        "8": "L",
+        "12": "0XL",
+    };
 
     constructor(private orderId: string, private selector: Selector) {
+        if (!selector) {
+            selector = new HtmlSelector();
+        }
         this.url = `https://us.shein.com/user/orders/detail/` + this.orderId;
     }
-    updateSize() {
-        this.index = 0;
-        const count = this.selector.GetImages(".img-box img").length;
-        this.size = count;
-    }
-    ImageURL(): string {
-        const items = this.selector.GetImages(".img-box img");
-        let item = items[this.index];
+    ImageURL(e: Element): string {
+        let item = this.selector.GetImages(e, ".img-box img");
         if (!item) {
             item = "";
         }
         return `=IMAGE("${item}")`;
     }
-    Type(): string {
+    Type(e: Element): string {
         return "";
     }
-    Description(): string {
-        const items = this.selector.GetText(".goods-info a");
-        let item = items[this.index];
+    Description(e: Element): string {
+        let item = this.selector.GetText(e, ".goods-info a");
         if (!item) {
             item = "";
         }
         return item.replace("SHEIN", "").trim();
     }
-    Brand(): string {
+    Brand(e: Element): string {
         return "Shein";
     }
-    Size(): string {
-        const items = this.selector.GetText(".size-info");
-        let item = items[this.index];
+    Size(e: Element): string {
+        let item = this.selector.GetText(e, ".size-info");
         if (!item) {
             return "";
         }
@@ -44,50 +64,50 @@ export class Shein implements Crawler {
             return "";
         }
         if (parts.length > 2) {
-            return parts[1] + "/" + parts[2];
+            let unmapped = parts[1] + "/" + parts[2];
+            let size = this.sizes[unmapped];
+            return size ? size : unmapped;
         }
-        return parts[1];
+        let unmapped = parts[1];
+        let size = this.sizes[unmapped];
+        return size ? size : unmapped;
     }
-    Color(): string {
-        const items = this.selector.GetText(".size-info");
-        let item = items[this.index];
+    Color(e: Element): string {
+        let item = this.selector.GetText(e, ".size-info");
         if (!item) {
             return "";
         }
         let parts = item.split("/");
         return parts[0];
     }
-    Price(): string {
-        const items = this.selector.GetText(".struct-gray-light");
-        const item = items[this.index];
+    Price(e: Element): string {
+        let item = this.selector.GetText(e, ".struct-price__dis");
         if (!item) {
             return "";
         }
         return item.replace("$", "").trim();
     }
-    Link(): string {
-        const texts = this.selector.GetLink(".goods-info a");
-        let item = texts[this.index];
+    Link(e: Element): string {
+        let item = this.selector.GetLink(e, ".goods-info a");
         if (!item) {
             item = "";
         }
         return item;
     }
-    OrderLink(): string {
+    OrderLink(e: Element): string {
         return this.url;
     }
     BuildRow(): string[] {
-        this.updateSize();
         const rows = [] as string[];
-        while (this.index < this.size) {
+        const elements = this.selector.Fetch(".c-order-detail-table tr");
+        elements.forEach((e) => {
             rows.push(`\t`
-                + `${this.ImageURL()}\t${this.Type()}\t${this.Description()}\t`
-                + `${this.Brand()}\t${this.Size()}\t${this.Color()}\t`
-                + `${this.Price()}\t\t\t\t\t`
-                + `${this.OrderLink()}\t${this.Link()}\n`
+                + `${this.ImageURL(e)}\t${this.Type(e)}\t${this.Description(e)}\t`
+                + `${this.Brand(e)}\t${this.Size(e)}\t${this.Color(e)}\t`
+                + `${this.Price(e)}\t\t\t\t\t\t`
+                + `${this.OrderLink(e)}\t${this.Link(e)}\n`
             );
-            this.index++;
-        }
+        });
         return rows;
     }
 }
