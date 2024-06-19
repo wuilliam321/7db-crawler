@@ -35,7 +35,7 @@ export class Shein implements Crawler {
         this.url = `https://us.shein.com/user/orders/detail/` + this.orderId;
     }
     ImageURL(e: Element): string {
-        let item = this.selector.GetImages(e, ".img-box img");
+        let item = this.selector.GetImages(e, ".crop-image-container img");
         if (!item) {
             item = "";
         }
@@ -99,7 +99,7 @@ export class Shein implements Crawler {
     }
     BuildRow(): string[] {
         const rows = [] as string[];
-        const elements = this.selector.Fetch(".c-order-detail-table tr");
+        const elements = this.selector.Fetch(".new-order-table tr");
         elements.forEach((e) => {
             rows.push(`\t`
                 + `${this.ImageURL(e)}\t${this.Type(e)}\t${this.Description(e)}\t`
